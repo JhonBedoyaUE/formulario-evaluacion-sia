@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evaluación del Sistema de Información Académico</title>
+<style>
+  :root { --green: #0B3D2E; --light: #4F7F5E; --bg: #f4f6f4; --card: #ffffff; }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: #1f2937; margin: 0; }
+  header { background: var(--green); color: #fff; padding: 2rem 1rem; text-align: center; }
+  header p { max-width: 46rem; margin: 0.6rem auto 0; font-size: 0.95rem; opacity: 0.92; }
+  main { max-width: 52rem; margin: -1.2rem auto 3rem; padding: 0 1rem; }
+  section.card { background: var(--card); border-radius: 0.8rem; padding: 1.4rem 1.5rem; margin-top: 1.2rem; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  h2 { color: var(--green); font-size: 1.15rem; margin-top: 0; }
+  .row { display: flex; gap: 1rem; flex-wrap: wrap; }
+  .field { flex: 1 1 12rem; display: flex; flex-direction: column; gap: .3rem; margin-bottom: .8rem; }
+  label { font-size: .9rem; font-weight: 600; }
+  input[type=text], input[type=date], textarea { border: 1px solid #cbd5d1; border-radius: .5rem; padding: .55rem .7rem; font-size: 1rem; width: 100%; }
+  ol.tasks li { margin-bottom: .45rem; }
+  ol.tasks input { margin-right: .5rem; accent-color: var(--green); }
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+  th, td { padding: .55rem .3rem; border-bottom: 1px solid #e5e7eb; text-align: left; vertical-align: top; }
+  th.num, td.num { text-align: center; white-space: nowrap; }
+  td.num input { accent-color: var(--green); width: 1.1rem; height: 1.1rem; }
+  textarea { min-height: 5rem; resize: vertical; }
+  .actions { display: flex; gap: .8rem; margin-top: 1.4rem; flex-wrap: wrap; }
+  button { border: 0; border-radius: .6rem; padding: .8rem 1.4rem; font-size: 1rem; cursor: pointer; }
+  button.primary { background: var(--green); color: #fff; }
+  button.secondary { background: #e5e7eb; color: #111827; }
+  footer { text-align: center; color: #6b7280; font-size: .85rem; padding-bottom: 2rem; }
+  .hint { font-size: .85rem; color: #6b7280; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Evaluación del Sistema de Información Académico</h1>
+  <p>Programa de Ciencia de Datos — Departamento de Matemáticas. Este formulario recoge la
+  retroalimentación del personal administrativo como parte de la evaluación del trabajo de grado.
+  Sus respuestas se utilizan únicamente con fines académicos. Al finalizar, descargue sus
+  respuestas en formato Markdown con el botón al final.</p>
+</header>
+<main>
+  <section class="card">
+    <h2>Datos del participante (opcional)</h2>
+    <div class="row">
+      <div class="field"><label for="nombre">Nombre</label><input type="text" id="nombre"></div>
+      <div class="field"><label for="rol">Rol</label><input type="text" id="rol"></div>
+      <div class="field"><label for="fecha">Fecha</label><input type="date" id="fecha"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Parte 1 — Sesión guiada de uso (45–60 minutos)</h2>
+    <p class="hint">Marque cada tarea a medida que la complete.</p>
+    <ol class="tasks" id="tareas"></ol>
+  </section>
+
+  <section class="card">
+    <h2>Parte 2 — Cuestionario</h2>
+    <p class="hint">1 = totalmente en desacuerdo · 5 = totalmente de acuerdo.</p>
+    <table>
+      <thead><tr><th>#</th><th>Afirmación</th><th class="num">1</th><th class="num">2</th><th class="num">3</th><th class="num">4</th><th class="num">5</th></tr></thead>
+      <tbody id="likert"></tbody>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2>Parte 3 — Preguntas abiertas</h2>
+    <div class="field"><label for="a1">A1. ¿Qué es lo más útil del sistema para su trabajo?</label><textarea id="a1"></textarea></div>
+    <div class="field"><label for="a2">A2. ¿Qué debería mejorarse con prioridad?</label><textarea id="a2"></textarea></div>
+    <div class="field"><label for="a3">A3. ¿Qué funcionalidad hace falta?</label><textarea id="a3"></textarea></div>
+  </section>
+
+  <div class="actions">
+    <button class="primary" id="descargar">Descargar respuestas (.md)</button>
+    <button class="secondary" id="copiar">Copiar al portapapeles</button>
+  </div>
+  <p class="hint" id="estado"></p>
+</main>
+<footer>Trabajo de grado — Programa de Ciencia de Datos, Universidad Externado de Colombia.</footer>
+
+<script>
+const TAREAS = [
+  "Consultar la página de un estudiante y verificar su promedio.",
+  "Revisar el avance en el visor del plan de estudios.",
+  "Validar y cargar un archivo de datos de prueba.",
+  "Registrar un reporte cualitativo de prueba.",
+  "Consultar el estado de una petición al consejo.",
+  "Descargar el listado en hoja de cálculo y localizar un caso con alerta."
+];
+const PREGUNTAS = [
+  "El tablero de información agregada me permite verificar el estado de los estudiantes con mayor rapidez que con los archivos actuales.",
+  "La página del estudiante reúne en un solo lugar toda la información que necesito para preparar un caso del consejo.",
+  "El visor del plan de estudios y las rutas de aprendizaje se entienden sin ayuda adicional.",
+  "El proceso de carga y validación de tablas detecta los errores de los archivos antes de que contaminen la base de datos.",
+  "El registro de reportes cualitativos en el sistema es más ágil que el mecanismo actual (correo, archivos).",
+  "El seguimiento de peticiones al consejo deja clara la trazabilidad de estados y decisiones.",
+  "Confío en que los promedios e indicadores mostrados corresponden a los datos oficiales.",
+  "El sistema restringe correctamente lo que cada perfil puede ver y hacer.",
+  "En general, el sistema me resulta útil para mi trabajo diario en el programa.",
+  "Encuentro rápidamente a un estudiante en el listado usando la búsqueda o los filtros.",
+  "Las secciones de permanencia y alertas del tablero se entienden sin explicación adicional.",
+  "La descarga de listados y recursos me sirve para mi trabajo fuera del sistema."
+];
+const ABIERTAS = [
+  ["A1", "¿Qué es lo más útil del sistema para su trabajo?", "a1"],
+  ["A2", "¿Qué debería mejorarse con prioridad?", "a2"],
+  ["A3", "¿Qué funcionalidad hace falta?", "a3"]
+];
+
+const tareasEl = document.getElementById("tareas");
+TAREAS.forEach((t, i) => {
+  const li = document.createElement("li");
+  const cb = document.createElement("input");
+  cb.type = "checkbox"; cb.id = "t" + (i + 1);
+  const lb = document.createElement("label");
+  lb.htmlFor = cb.id; lb.textContent = t;
+  lb.prepend(cb);
+  li.appendChild(lb);
+  tareasEl.appendChild(li);
+});
+
+const likertEl = document.getElementById("likert");
+PREGUNTAS.forEach((p, i) => {
+  const tr = document.createElement("tr");
+  const th = document.createElement("td");
+  th.textContent = "P" + (i + 1);
+  const td = document.createElement("td");
+  td.textContent = p;
+  tr.appendChild(th); tr.appendChild(td);
+  for (let v = 1; v <= 5; v++) {
+    const c = document.createElement("td");
+    c.className = "num";
+    const r = document.createElement("input");
+    r.type = "radio"; r.name = "p" + (i + 1); r.value = v;
+    c.appendChild(r);
+    tr.appendChild(c);
+  }
+  likertEl.appendChild(tr);
+});
+
+document.getElementById("fecha").valueAsDate = new Date();
+
+function val(id) { return document.getElementById(id).value.trim(); }
+function radio(name) {
+  const el = document.querySelector('input[name="' + name + '"]:checked');
+  return el ? el.value : "sin respuesta";
+}
+
+function generarMD() {
+  const L = [];
+  L.push("# Respuestas — Evaluación del Sistema de Información Académico");
+  L.push("");
+  L.push("- Nombre: " + (val("nombre") || "—"));
+  L.push("- Rol: " + (val("rol") || "—"));
+  L.push("- Fecha: " + (val("fecha") || "—"));
+  L.push("");
+  L.push("## Tareas completadas");
+  L.push("");
+  TAREAS.forEach((t, i) => {
+    const ok = document.getElementById("t" + (i + 1)).checked ? "x" : " ";
+    L.push("- [" + ok + "] T" + (i + 1) + ". " + t);
+  });
+  L.push("");
+  L.push("## Cuestionario (1–5)");
+  L.push("");
+  PREGUNTAS.forEach((p, i) => {
+    L.push("- P" + (i + 1) + " (" + radio("p" + (i + 1)) + "): " + p);
+  });
+  L.push("");
+  L.push("## Preguntas abiertas");
+  L.push("");
+  ABIERTAS.forEach(([cod, preg, id]) => {
+    L.push("### " + cod + ". " + preg);
+    L.push("");
+    L.push(val(id) || "_Sin respuesta._");
+    L.push("");
+  });
+  return L.join("\n");
+}
+
+function nombreArchivo() {
+  const base = (val("nombre") || "participante").toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "participante";
+  const f = val("fecha") || new Date().toISOString().slice(0, 10);
+  return "evaluacion-sia-" + base + "-" + f + ".md";
+}
+
+document.getElementById("descargar").addEventListener("click", () => {
+  const blob = new Blob([generarMD()], { type: "text/markdown;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = nombreArchivo();
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  document.getElementById("estado").textContent = "Archivo descargado: " + a.download;
+});
+
+document.getElementById("copiar").addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(generarMD());
+    document.getElementById("estado").textContent = "Respuestas copiadas al portapapeles.";
+  } catch (e) {
+    document.getElementById("estado").textContent = "No se pudo copiar automáticamente.";
+  }
+});
+</script>
+</body>
+</html>
