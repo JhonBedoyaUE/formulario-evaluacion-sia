@@ -19,6 +19,11 @@
   input[type=text], input[type=date], textarea { border: 1px solid #cbd5d1; border-radius: .5rem; padding: .55rem .7rem; font-size: 1rem; width: 100%; }
   ol.tasks li { margin-bottom: .45rem; }
   ol.tasks input { margin-right: .5rem; accent-color: var(--green); }
+  .add-task { display: flex; gap: .6rem; margin-top: .8rem; }
+  .add-task input { flex: 1; }
+  .add-task button { padding: .55rem 1rem; font-size: .9rem; white-space: nowrap; }
+  button.remove { background: transparent; color: #9ca3af; padding: 0 .4rem; font-size: .9rem; margin-left: .4rem; }
+  button.remove:hover { color: #b91c1c; }
   table { width: 100%; border-collapse: collapse; font-size: .92rem; }
   th, td { padding: .55rem .3rem; border-bottom: 1px solid #e5e7eb; text-align: left; vertical-align: top; }
   th.num, td.num { text-align: center; white-space: nowrap; }
@@ -52,8 +57,12 @@
 
   <section class="card">
     <h2>Parte 1 — Sesión guiada de uso (45–60 minutos)</h2>
-    <p class="hint">Marque cada tarea a medida que la complete.</p>
+    <p class="hint">Marque cada tarea a medida que la complete. Si desea probar una labor adicional propia de su cargo, agréguela abajo.</p>
     <ol class="tasks" id="tareas"></ol>
+    <div class="add-task">
+      <input type="text" id="nueva-tarea" placeholder="Agregar otra tarea que desee probar...">
+      <button type="button" class="secondary" id="btn-agregar-tarea">+ Agregar tarea</button>
+    </div>
   </section>
 
   <section class="card">
@@ -81,27 +90,26 @@
 <footer>Trabajo de grado — Programa de Ciencia de Datos, Universidad Externado de Colombia.</footer>
 
 <script>
-const TAREAS = [
+const TAREAS_FIJAS = [
   "Consultar la página de un estudiante y verificar su promedio.",
-  "Revisar el avance en el visor del plan de estudios.",
+  "Revisar el historial y el estado académico de un estudiante recorriendo las pestañas de su página (notas y estados, plan de estudios, rutas de prerrequisitos y horario).",
   "Validar y cargar un archivo de datos de prueba.",
-  "Registrar un reporte cualitativo de prueba.",
-  "Consultar el estado de una petición al consejo.",
-  "Descargar el listado en hoja de cálculo y localizar un caso con alerta."
+  "Consultar la información de consejo asociada a un estudiante.",
+  "Descargar el listado o una tabla de recursos en hoja de cálculo."
 ];
 const PREGUNTAS = [
-  "El tablero de información agregada me permite verificar el estado de los estudiantes con mayor rapidez que con los archivos actuales.",
-  "La página del estudiante reúne en un solo lugar toda la información que necesito para preparar un caso del consejo.",
+  "El tablero de información agregada me permite consultar con facilidad los indicadores generales de los estudiantes del programa.",
+  "La página de detalle del estudiante reúne en un solo lugar la información que necesito para realizar mis labores.",
   "El visor del plan de estudios y las rutas de aprendizaje se entienden sin ayuda adicional.",
-  "El proceso de carga y validación de tablas detecta los errores de los archivos antes de que contaminen la base de datos.",
-  "El registro de reportes cualitativos en el sistema es más ágil que el mecanismo actual (correo, archivos).",
-  "El seguimiento de peticiones al consejo deja clara la trazabilidad de estados y decisiones.",
-  "Confío en que los promedios e indicadores mostrados corresponden a los datos oficiales.",
+  "El proceso de carga y validación de tablas detecta los errores de los archivos antes de guardarlos en la base de datos.",
+  "En comparación con la forma en que se hacía antes, acceder a la información de los estudiantes es más fácil y está mejor organizada.",
+  "La plataforma es intuitiva y sencilla de manejar.",
+  "La navegación entre secciones y la consulta de información responden con rapidez.",
   "El sistema restringe correctamente lo que cada perfil puede ver y hacer.",
   "En general, el sistema me resulta útil para mi trabajo diario en el programa.",
   "Encuentro rápidamente a un estudiante en el listado usando la búsqueda o los filtros.",
-  "Las secciones de permanencia y alertas del tablero se entienden sin explicación adicional.",
-  "La descarga de listados y recursos me sirve para mi trabajo fuera del sistema."
+  "Puedo entender cada gráfico y sección del tablero sin explicación adicional.",
+  "La descarga de listados y tablas de recursos me sirve para mi trabajo."
 ];
 const ABIERTAS = [
   ["A1", "¿Qué es lo más útil del sistema para su trabajo?", "a1"],
@@ -109,17 +117,42 @@ const ABIERTAS = [
   ["A3", "¿Qué funcionalidad hace falta?", "a3"]
 ];
 
+const tareas = TAREAS_FIJAS.map(texto => ({ texto, ok: false, extra: false }));
 const tareasEl = document.getElementById("tareas");
-TAREAS.forEach((t, i) => {
-  const li = document.createElement("li");
-  const cb = document.createElement("input");
-  cb.type = "checkbox"; cb.id = "t" + (i + 1);
-  const lb = document.createElement("label");
-  lb.htmlFor = cb.id; lb.textContent = t;
-  lb.prepend(cb);
-  li.appendChild(lb);
-  tareasEl.appendChild(li);
-});
+
+function renderTareas() {
+  tareasEl.innerHTML = "";
+  tareas.forEach((t, i) => {
+    const li = document.createElement("li");
+    const cb = document.createElement("input");
+    cb.type = "checkbox"; cb.id = "t" + (i + 1); cb.checked = t.ok;
+    cb.addEventListener("change", () => { t.ok = cb.checked; });
+    const lb = document.createElement("label");
+    lb.htmlFor = cb.id; lb.textContent = t.texto;
+    lb.prepend(cb);
+    li.appendChild(lb);
+    if (t.extra) {
+      const rm = document.createElement("button");
+      rm.type = "button"; rm.className = "remove"; rm.textContent = "✕";
+      rm.title = "Quitar tarea";
+      rm.addEventListener("click", () => { tareas.splice(i, 1); renderTareas(); });
+      li.appendChild(rm);
+    }
+    tareasEl.appendChild(li);
+  });
+}
+renderTareas();
+
+const inputNueva = document.getElementById("nueva-tarea");
+function agregarTarea() {
+  const txt = inputNueva.value.trim();
+  if (!txt) return;
+  tareas.push({ texto: txt, ok: true, extra: true });
+  inputNueva.value = "";
+  renderTareas();
+}
+document.getElementById("btn-agregar-tarea").addEventListener("click", agregarTarea);
+inputNueva.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); agregarTarea(); } });
 
 const likertEl = document.getElementById("likert");
 PREGUNTAS.forEach((p, i) => {
@@ -158,9 +191,10 @@ function generarMD() {
   L.push("");
   L.push("## Tareas completadas");
   L.push("");
-  TAREAS.forEach((t, i) => {
-    const ok = document.getElementById("t" + (i + 1)).checked ? "x" : " ";
-    L.push("- [" + ok + "] T" + (i + 1) + ". " + t);
+  tareas.forEach((t, i) => {
+    const ok = t.ok ? "x" : " ";
+    const tag = t.extra ? " *(agregada por el participante)*" : "";
+    L.push("- [" + ok + "] T" + (i + 1) + ". " + t.texto + tag);
   });
   L.push("");
   L.push("## Cuestionario (1–5)");
